@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listas Enlazadas</title>
+    <style>
+        body{font-family:Arial,sans-serif;margin:0;background:linear-gradient(135deg,#667eea,#764ba2);padding:20px}
+        .container{max-width:1100px;margin:auto;background:white;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden}
+        header{background:#2c3e50;color:white;padding:20px;text-align:center}
+        .tabs{display:flex;background:#34495e}
+        .tab{flex:1;padding:15px;text-align:center;color:white;cursor:pointer}
+        .tab.active{background:#3498db;font-weight:bold}
+        .content{padding:25px}
+        .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+        input,select,button{padding:10px;border-radius:8px;font-size:16px}
+        button{background:#3498db;color:white;border:none;cursor:pointer}
+        button:hover{background:#2980b9}
+        .lista-visual{background:#f8f9fa;padding:20px;border-radius:10px;font-family:monospace;font-size:18px;min-height:120px;border:2px dashed #ddd}
+        .log{background:#2c3e50;color:#2ecc71;padding:15px;border-radius:8px;max-height:220px;overflow-y:auto;font-family:monospace}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header><h1>Gestor de Listas Enlazadas</h1></header>
+    <div class="tabs">
+        <div class="tab active" data-tipo="simple">Lista Simple</div>
+        <div class="tab" data-tipo="doble">Lista Doble</div>
+        <div class="tab" data-tipo="circular">Lista Circular</div>
+    </div>
+    <div class="content">
+        <div class="controls">
+            <input type="text" id="dato" placeholder="Valor a insertar">
+            <select id="posicion"><option value="final">Final</option><option value="inicio">Inicio</option></select>
+            <button onclick="insertar()">➕ Insertar</button>
+            <button onclick="eliminarPrimero()">Eliminar Primero</button>
+            <button onclick="eliminarUltimo()">Eliminar Último</button>
+            <button onclick="eliminarPorValor()">Eliminar por Valor</button>
+            <button onclick="buscarElemento()">🔍 Buscar</button>
+            <button onclick="mostrarInverso()" id="btnInverso" style="display:none">↔ Inverso</button>
+            <button onclick="resetLista()">Reiniciar</button>
+        </div>
+        <div id="visualizacion" class="lista-visual">Lista vacía</div>
+        <div class="log" id="log">Bienvenido...</div>
+    </div>
+</div>
+
+<script>
+let tipoActual = 'simple';
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');tipoActual=t.dataset.tipo;document.getElementById('btnInverso').style.display=tipoActual==='doble'?'inline-block':'none';actualizarVisualizacion();}));
+
+async function apiCall(ep,method='GET',body=null){
+    const o={method,headers:{'Content-Type':'application/json'}};
+    if(body)o.body=JSON.stringify(body);
+    const r=await fetch(`/api/${tipoActual}${ep}`,o);
+    return await r.json();
+}
+
+async function insertar(){const d=document.getElementById('dato').value.trim();if(!d)return;const p=document.getElementById('posicion').value;const res=await apiCall('/insertar','POST',{dato:d,posicion:p});if(res.status==='ok')actualizarVisualizacion(res.lista);}
+async function eliminarPrimero(){const r=await apiCall('/eliminar','POST',{accion:'primero'});if(r.status==='ok')actualizarVisualizacion(r.lista);}
+async function eliminarUltimo(){const r=await apiCall('/eliminar','POST',{accion:'ultimo'});if(r.status==='ok')actualizarVisualizacion(r.lista);}
+async function eliminarPorValor(){const d=prompt("Valor a eliminar:");if(d){const r=await apiCall('/eliminar','POST',{dato:d});if(r.status==='ok')actualizarVisualizacion(r.lista);}}
+async function buscarElemento(){const d=prompt("Buscar:");if(d){const r=await apiCall('/buscar','POST',{dato:d});alert(r.encontrado?`✅ Encontrado`:`❌ No encontrado`);}}
+async function mostrarInverso(){const r=await fetch('/api/doble/mostrar_inverso');const data=await r.json();alert(data.lista);}
+async function resetLista(){if(confirm('Reiniciar?')){await fetch('/api/reset',{method:'POST'});actualizarVisualizacion();}}
+async function actualizarVisualizacion(est=null){if(!est){const r=await apiCall('/estado','GET');est=r.lista;}document.getElementById('visualizacion').innerHTML=`<strong>${tipoActual.toUpperCase()}:</strong><br>${est||'Vacía'}`;}
+window.onload=()=>actualizarVisualizacion();
+</script>
+</body>
+</html>
